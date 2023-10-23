@@ -1,0 +1,94 @@
+-- Day 6
+
+
+USE MovieSuperstore;
+
+-- It's getting to the end of the year and the Briggs Company wants to reward the customer who made the highest sales ever.
+-- Using the Sample Super Store, write a queryy to help the company identify this customer and category of business driving the sales.
+-- Let your output show the customer Name, the Category and the total sales
+SELECT *
+FROM Orders;
+
+SELECT *
+FROM People;
+
+SELECT *
+FROM dbo.Returning;
+
+SELECT *
+FROM bank_market_data
+
+-- Solution 1
+SELECT [Customer ID]
+	,[Customer Name]
+	,Category
+	,SUM(Sales) AS total_sales
+FROM Orders
+GROUP BY [Customer ID]
+	,[Customer Name]
+	,Category
+ORDER BY total_sales DESC;
+
+--Solution 2 Using CTE's
+WITH cte
+AS (
+	SELECT [Customer ID]
+		,[Customer Name]
+		,[Category]
+		,SUM([Sales]) AS 'Total Sales'
+	FROM Orders
+	GROUP BY [Customer ID]
+		,[Customer Name]
+		,[Category]
+	)
+SELECT TOP 1 [Customer Name]
+	,[Category]
+	,[Total Sales]
+FROM cte
+ORDER BY [Total Sales] DESC;
+
+-- Solution 3 Using Subqueries
+SELECT TOP 1 [Customer Name]
+	,[Category]
+	,[Total Sales]
+FROM (
+	SELECT [Customer ID]
+		,[Customer Name]
+		,[Category]
+		,SUM([Sales]) AS 'Total Sales'
+	FROM Orders
+	GROUP BY [Customer ID]
+		,[Customer Name]
+		,[Category]
+	) AS querytab1
+ORDER BY [Total Sales] DESC;
+
+
+-- Day 7
+SELECT Category,
+	Total_Sales,
+	(
+		Total_Sales / (
+			SELECT Sum(Sales)
+			FROM Orders
+			) * 100
+		) AS 'Percentage Contribution'
+FROM (
+	SELECT Category,
+		Sum(Sales) AS Total_Sales
+	FROM Orders
+	GROUP BY Category
+	) AS subtab1
+GROUP BY Category,
+	Total_Sales;
+
+with cte as (SELECT Category,
+					Sum(Sales) AS Total_Sales					
+	FROM Orders
+	GROUP BY Category)
+
+SELECT Category,
+		ROUND(Total_Sales,0) as 'Total Sales',
+		ROUND(Total_Sales/(SELECT SUM(Total_Sales) FROM cte) * 100,2) AS 'Percentage Contribution'
+FROM cte
+ORDER by [Percentage Contribution] DESC;
