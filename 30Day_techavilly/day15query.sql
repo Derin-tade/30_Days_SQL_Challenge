@@ -1,45 +1,70 @@
 -- what's the total number of customers that have housing, loan and are single
-
 USE MovieSuperstore;
 
-select * from Marketdat4bank;
+SELECT *
+FROM Marketdat4bank;
 
 -- solution 1
+SELECT housing,
+	loan,
+	marital,
+	COUNT(*) AS Single_House_Loan_Count
+FROM Marketdat4bank
+WHERE housing = 'yes'
+	AND loan = 'yes'
+	AND marital = 'single'
+GROUP BY housing,
+	loan,
+	marital
 
-select housing, loan, marital, count(*) as Single_House_Loan_Count from Marketdat4bank
-where housing = 'yes' and loan = 'yes' and marital = 'single'
-group by housing, loan,	marital
+SELECT TOP 1 housing,
+	loan,
+	marital,
+	COUNT(*) OVER (
+		PARTITION BY housing,
+		loan,
+		marital
+		) AS Single_House_Loan_Count
+FROM Marketdat4bank
+WHERE housing = 'yes'
+	AND loan = 'yes'
+	AND marital = 'single'
 
-select top 1  housing, loan, marital, count(*) over (partition by housing, loan, marital) as Single_House_Loan_Count
-from Marketdat4bank
-where housing = 'yes' and loan = 'yes' and marital = 'single'
+SELECT housing,
+	loan,
+	marital,
+	COUNT(*) OVER (
+		PARTITION BY housing,
+		loan,
+		marital
+		) AS Single_House_Loan_Count
+FROM Marketdat4bank
+WHERE housing = 'yes'
+	AND loan = 'yes'
+	AND marital = 'single';
 
+IF OBJECT_ID('singhousloan', 'P') IS NOT NULL
+	DROP PROCEDURE singhousloan
+GO
 
-SELECT
-    housing,
-    loan,
-    marital,
-    COUNT(*) OVER (PARTITION BY housing, loan, marital) AS Single_House_Loan_Count
-FROM
-    Marketdat4bank
-WHERE
-    housing = 'yes' AND loan = 'yes' AND marital = 'single';
+CREATE PROCEDURE singhousloan 
+	@marstat VARCHAR(255),
+	@houstat VARCHAR(255),
+	@loastat VARCHAR(255)
+AS
+BEGIN
+	SELECT housing,
+		loan,
+		marital,
+		count(*) AS Single_House_Loan_Count
+	FROM Marketdat4bank
+	WHERE housing = @houstat
+		AND loan = @loastat
+		AND marital = @marstat
+	GROUP BY housing,
+		loan,
+		marital
+END;
+GO
 
-
-if object_id ('singhousloan', 'P') is not null
-drop procedure singhousloan
-
-go
-create procedure singhousloan
-				@marstat varchar(255),
-				@houstat varchar(255),
-				@loastat varchar(255)
-as
-		begin	
-				select housing, loan, marital, count(*) as Single_House_Loan_Count from Marketdat4bank
-					where housing = @houstat and loan = @loastat and marital = @marstat
-					group by housing, loan,	marital
-		end;
-go
-
-exec singhousloan 'single','yes','yes'
+EXEC singhousloan 'single','yes','yes'
