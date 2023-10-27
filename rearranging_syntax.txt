@@ -92,3 +92,35 @@ SELECT Category,
 		ROUND(Total_Sales/(SELECT SUM(Total_Sales) FROM cte) * 100,2) AS 'Percentage Contribution'
 FROM cte
 ORDER by [Percentage Contribution] DESC;
+
+
+
+-- day11 query
+
+WITH cte_divorced_over2k
+AS (
+	SELECT count(CASE 
+				WHEN marital = 'divorced'
+					AND balance > 2000
+					THEN 1
+				END) AS divorced_customers_over_2k,
+		count(*) AS total_count
+	FROM Marketdat4bank
+	)
+SELECT format(round((divorced_customers_over_2k * 100.0 / total_count), 2), '0.###') 
+		AS '%Divorced Customers Over 2,000'
+FROM cte_divorced_over2k;
+
+
+WITH cte
+AS (
+	SELECT DISTINCT job,
+		COUNT(*) OVER (PARTITION BY job) AS Frequency
+	FROM Marketdat4bank
+	)
+SELECT job,
+	Frequency
+FROM cte
+ORDER BY Frequency DESC;
+
+
