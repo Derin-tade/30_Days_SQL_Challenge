@@ -35,4 +35,5 @@ SELECT TOP 5 Product_Name,
 FROM cte
 GROUP BY Product_ID,
 	Product_Name
-ORDER BY Product_count DESC
+ORDER BY Product_count DESC,
+		 Product_Name DESC;
