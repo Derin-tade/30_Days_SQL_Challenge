@@ -7,4 +7,3 @@ SELECT
     CAST(salary AS SIGNED) -  CAST(AVG(salary) OVER () AS SIGNED) AS salary_diff
 FROM
     employeetable;
-

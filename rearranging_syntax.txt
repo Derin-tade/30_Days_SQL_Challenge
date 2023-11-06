@@ -1,6 +1,4 @@
 -- Day 6
-
-
 USE MovieSuperstore;
 
 -- It's getting to the end of the year and the Briggs Company wants to reward the customer who made the highest sales ever.
@@ -63,64 +61,222 @@ FROM (
 	) AS querytab1
 ORDER BY [Total Sales] DESC;
 
-
 -- Day 7
-SELECT Category,
-	Total_Sales,
-	(
+SELECT Category
+	,Total_Sales
+	,(
 		Total_Sales / (
 			SELECT Sum(Sales)
 			FROM Orders
 			) * 100
 		) AS 'Percentage Contribution'
 FROM (
-	SELECT Category,
-		Sum(Sales) AS Total_Sales
+	SELECT Category
+		,Sum(Sales) AS Total_Sales
 	FROM Orders
 	GROUP BY Category
 	) AS subtab1
-GROUP BY Category,
-	Total_Sales;
+GROUP BY Category
+	,Total_Sales;
 
-with cte as (SELECT Category,
-					Sum(Sales) AS Total_Sales					
+WITH cte
+AS (
+	SELECT Category
+		,Sum(Sales) AS Total_Sales
 	FROM Orders
-	GROUP BY Category)
-
-SELECT Category,
-		ROUND(Total_Sales,0) as 'Total Sales',
-		ROUND(Total_Sales/(SELECT SUM(Total_Sales) FROM cte) * 100,2) AS 'Percentage Contribution'
+	GROUP BY Category
+	)
+SELECT Category
+	,ROUND(Total_Sales, 0) AS 'Total Sales'
+	,ROUND(Total_Sales / (
+			SELECT SUM(Total_Sales)
+			FROM cte
+			) * 100, 2) AS 'Percentage Contribution'
 FROM cte
-ORDER by [Percentage Contribution] DESC;
-
-
+ORDER BY [Percentage Contribution] DESC;
 
 -- day11 query
-
 WITH cte_divorced_over2k
 AS (
 	SELECT count(CASE 
 				WHEN marital = 'divorced'
 					AND balance > 2000
 					THEN 1
-				END) AS divorced_customers_over_2k,
-		count(*) AS total_count
+				END) AS divorced_customers_over_2k
+		,count(*) AS total_count
 	FROM Marketdat4bank
 	)
-SELECT format(round((divorced_customers_over_2k * 100.0 / total_count), 2), '0.###') 
-		AS '%Divorced Customers Over 2,000'
+SELECT format(round((divorced_customers_over_2k * 100.0 / total_count), 2), '0.###') AS '%Divorced Customers Over 2,000'
 FROM cte_divorced_over2k;
 
-
+-- day12
 WITH cte
 AS (
-	SELECT DISTINCT job,
-		COUNT(*) OVER (PARTITION BY job) AS Frequency
+	SELECT DISTINCT job
+		,COUNT(*) OVER (PARTITION BY job) AS Frequency
 	FROM Marketdat4bank
 	)
-SELECT job,
-	Frequency
+SELECT job
+	,Frequency
 FROM cte
 ORDER BY Frequency DESC;
 
+-- day13
+WITH cte
+AS (
+	SELECT job
+		,avg(duration) AS avg_weeks
+	FROM Marketdat4bank
+	GROUP BY job
+	)
+SELECT round(avg_weeks / 52, 2) AS 'Average years in management roles'
+FROM cte
+WHERE job = 'management'
+ORDER BY avg_weeks;
 
+SELECT round(avg_weeks / 52, 2) AS 'Average years in management roles'
+FROM (
+	SELECT DISTINCT job
+		,avg(duration) OVER (PARTITION BY job) AS avg_weeks
+	FROM Marketdat4bank
+	) subq1
+WHERE job = 'management'
+ORDER BY avg_weeks;
+
+IF OBJECT_ID('avg_years_in_specific_role', 'P') IS NOT NULL
+	DROP PROCEDURE avg_years_in_specific_role
+GO
+
+CREATE PROCEDURE avg_years_in_specific_role @positiontype VARCHAR(255)
+AS
+BEGIN
+	SELECT ROUND(avg_weeks / 52, 2) AS 'Average years in management roles'
+	FROM (
+		SELECT DISTINCT job
+			,AVG(duration) OVER (PARTITION BY job) AS avg_weeks
+		FROM Marketdat4bank
+		) subq1
+	WHERE job = @positiontype
+END;
+GO
+
+EXEC avg_years_in_specific_role 'management'
+
+-- day 15
+USE MovieSuperstore;
+
+SELECT *
+FROM Marketdat4bank;
+
+-- solution 1
+SELECT housing
+	,loan
+	,marital
+	,count(*) AS Single_House_Loan_Count
+FROM Marketdat4bank
+WHERE housing = 'yes'
+	AND loan = 'yes'
+	AND marital = 'single'
+GROUP BY housing
+	,loan
+	,marital
+
+SELECT TOP 1 housing
+	,loan
+	,marital
+	,count(*) OVER (
+		PARTITION BY housing
+		,loan
+		,marital
+		) AS Single_House_Loan_Count
+FROM Marketdat4bank
+WHERE housing = 'yes'
+	AND loan = 'yes'
+	AND marital = 'single'
+
+SELECT housing
+	,loan
+	,marital
+	,COUNT(*) OVER (
+		PARTITION BY housing
+		,loan
+		,marital
+		) AS Single_House_Loan_Count
+FROM Marketdat4bank
+WHERE housing = 'yes'
+	AND loan = 'yes'
+	AND marital = 'single';
+
+IF object_id('singhousloan', 'P') IS NOT NULL
+	DROP PROCEDURE singhousloan
+GO
+
+CREATE PROCEDURE singhousloan @marstat VARCHAR(255)
+	,@houstat VARCHAR(255)
+	,@loastat VARCHAR(255)
+AS
+BEGIN
+	SELECT housing
+		,loan
+		,marital
+		,count(*) AS Single_House_Loan_Count
+	FROM Marketdat4bank
+	WHERE housing = @houstat
+		AND loan = @loastat
+		AND marital = @marstat
+	GROUP BY housing
+		,loan
+		,marital
+END;
+GO
+
+EXEC singhousloan 'single'
+	,'yes'
+	,'yes'
+
+--day19
+USE moviesuperstore;
+
+SELECT *
+FROM Orders;
+
+SELECT *
+FROM Returning;
+
+SELECT Product_Name
+	,Product_ID
+	,count(Product_ID) AS Product_count
+FROM (
+	SELECT r.*
+		,o.[product name] AS Product_Name
+		,o.[product id] AS Product_ID
+	FROM Returning r
+	INNER JOIN Orders o ON r.[Order ID] = o.[Order ID]
+	) AS sub_q
+GROUP BY Product_ID
+	,Product_Name
+ORDER BY Product_count DESC;
+
+WITH cte
+AS (
+	SELECT r.*
+		,o.[product name] AS Product_Name
+		,o.[product id] AS Product_ID
+	FROM Returning r
+	INNER JOIN Orders o ON r.[Order ID] = o.[Order ID]
+	)
+SELECT TOP 5 Product_Name
+	,Product_ID
+	,count(Product_ID) AS Product_count
+FROM cte
+GROUP BY Product_ID
+	,Product_Name
+ORDER BY Product_count DESC
+
+SELECT (
+		SELECT count(job_title)
+		FROM employeetable
+		WHERE job_title = 'Analyst'
+		) AS AnalystCount
+	,count(job_title) AS AnalystToTotalRatio
+FROM employeetable;
